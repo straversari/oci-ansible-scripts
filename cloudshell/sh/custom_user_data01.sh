@@ -10,3 +10,5 @@ INSTANCE_NAME=`hostname`
 DOMAIN_NAME=resource.local
 echo "$IPADDRESS ${INSTANCE_NAME}.${DOMAIN_NAME} ${INSTANCE_NAME}" >> /etc/hosts
 echo $? >> /tmp/userdata.log 2>&1 
+
+exit 0
