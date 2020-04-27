@@ -1,0 +1,42 @@
+---
+- name : Get variables from env
+  connection: local
+  hosts: localhost
+  vars:
+    subnet_id: "{{ lookup('env', 'CUSTOM_SUBNET_OCID') }}"
+    instance_name: "{{ lookup('env', 'CUSTOM_INSTANCE_NAME') }}"
+    availability_domain: "{{ lookup('env', 'CUSTOM_AD_NAME') }}"
+    compartment_id: "{{ lookup('env', 'CUSTOM_COMPARTMENT_OCID') }}"
+    shape: "{{ lookup('env', 'CUSTOM_SHAPE') }}"
+    source_image_id: "{{ lookup('env', 'CUSTOM_IMAGE_OCID') }}"
+    ssh_pub_key_file: "{{ lookup('env', 'CUSTOM_SSH_PUB_KEY_FILE') }}"
+    user_data: "{{ lookup('env','CUSTOM_USER_DATA') }}"
+    
+  tasks:
+    - name: Create instance
+      oci_instance:
+         name: "{{ instance_name }}"
+         availability_domain: "{{ availability_domain }}"
+         compartment_id: "{{ compartment_id }}"
+         shape: "{{ shape }}"
+         source_details:
+            source_type: image
+            image_id: "{{ source_image_id }}"     
+         vnic:
+            subnet_id: "{{ subnet_id }}"
+         metadata:
+            ssh_authorized_keys: "{{ lookup('file',  ssh_pub_key_file ) }}"
+            user_data: "{{ lookup('file',  user_data ) }}"
+      register: result
+
+    - set_fact:
+        instance_id: "{{result.instance.id }}"
+        instance_public_ip: "{{result.instance.primary_public_ip}}"
+        instance_private_ip: "{{result.instance.primary_private_ip}}"
+
+    - name: Print the IPs of the newly launched instance
+      debug:
+        msg:
+          - "@@@CUSTOM_INSTANCE_OCID = {{ instance_id }}"
+          - "@@@CUSTOM_INSTANCE_PUBLIC_IP = {{ instance_public_ip }}"
+          - "@@@CUSTOM_INSTANCE_PRIVATE_IP = {{ instance_private_ip }}"

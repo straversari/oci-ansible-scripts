@@ -1,0 +1,44 @@
+---
+- name : Get variables from env
+  connection: local
+  hosts: localhost
+  vars:
+    instance_id: "{{ lookup('env', 'CUSTOM_INSTANCE_OCID') }}"    
+    availability_domain: "{{ lookup('env', 'CUSTOM_AD_NAME') }}"
+    compartment_id: "{{ lookup('env', 'CUSTOM_COMPARTMENT_OCID') }}"    
+    
+    volume_name: "{{ lookup('env','CUSTOM_VOLUME_NAME') }}"
+    size_in_gbs: "{{ lookup('env','CUSTOM_VOLUME_SIZEGB') }}"
+    device_name: "{{ lookup('env','CUSTOM_DEVICE_NAME') }}"
+    
+  tasks:
+    - name: Create volume 01
+      oci_volume:
+        name: "{{ volume_name }}"
+        availability_domain: "{{ availability_domain }}"
+        compartment_id: "{{ compartment_id }}"
+        size_in_gbs: "{{ size_in_gbs }}"  
+      when:  volume_name  != ""
+      register: volume_result      
+
+    - set_fact:
+        volume_id: "{{volume_result.volume.id }}"
+      when:  volume_name  != ""
+
+    - name: Attach the volume to the instance
+      oci_volume_attachment:
+        instance_id: "{{ instance_id }}"
+        type: "iscsi"
+        volume_id: "{{ volume_id }}"
+        device: "{{ device_name }}"
+      when:  volume_name  != ""
+      register: attachment_result
+
+    - set_fact:
+        volume_attachment_details: "{{ attachment_result.volume_attachment }}"
+      when:  volume_name  != ""
+
+    - name: Print the iSCSI commands to attached volume
+      debug:
+        msg: "The iSCSI commands to attached volume with id {{ volume_id }} are {{ volume_attachment_details.iscsi_attach_commands }}"
+      when:  volume_name  != ""
