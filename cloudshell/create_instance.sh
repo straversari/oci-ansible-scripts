@@ -9,8 +9,6 @@ then
  cd ${PATHSH}
 fi
 SHELLPATH=`pwd`
-mkdir -p tmp 
-mkdir -p conf 
 
 if [ "$BATCH" != "Y" ]
 then
@@ -287,6 +285,8 @@ then
  echo "Do you want to proceed with instance creation? [y]"
  read CUSTOM_RESPONSE
 fi
+
+mkdir tmp
 
 if [ "$CUSTOM_RESPONSE" = "" -o "$CUSTOM_RESPONSE" = "y" -o "$BATCH" = "Y" ]
 then
