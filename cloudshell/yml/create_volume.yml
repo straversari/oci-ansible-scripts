@@ -40,5 +40,7 @@
 
     - name: Print the iSCSI commands to attached volume
       debug:
-        msg: "The iSCSI commands to attached volume with id {{ volume_id }} are {{ volume_attachment_details.iscsi_attach_commands }}"
+        msg:
+          - "@@@CUSTOM_VOLUME_ID = {{ volume_id }}"
+          - "@@@CUSTOM_VOLUME_ATTACHMENT = {{ volume_attachment_details.iscsi_attach_commands }}"
       when:  volume_name  != ""

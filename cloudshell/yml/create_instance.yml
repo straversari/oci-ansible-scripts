@@ -34,7 +34,7 @@
         instance_public_ip: "{{result.instance.primary_public_ip}}"
         instance_private_ip: "{{result.instance.primary_private_ip}}"
 
-    - name: Print the IPs of the newly launched instance
+    - name: Print launched instance information
       debug:
         msg:
           - "@@@CUSTOM_INSTANCE_OCID = {{ instance_id }}"

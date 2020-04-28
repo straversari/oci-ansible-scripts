@@ -21,14 +21,17 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the availability domain (see the list below):"
+  echo "Gathering availability domain list..."
   oci iam availability-domain list --output table --query "data [*].{\"Availability Domain\":\"name\"}"
+  echo -n "Please provide the availability domain: "
   read CUSTOM_AD_NAME
   echo "Validating availability domain..."
   oci iam availability-domain list --output table --query "data [*].{\"Availability Domain\":\"name\"}" | grep \ $CUSTOM_AD_NAME\  > /dev/null 2>&1
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi
  done
  CHECK=KO
@@ -36,15 +39,17 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the instance type [linux]:"  
+  echo -n "Please provide the instance type [linux]: "  
   read INSTANCE_TYPE 
   if [ "${INSTANCE_TYPE}" = "" ]
   then
-   INSTANCE_TYPE=linux
+   INSTANCE_TYPE=linux   
   fi  
   if [ "${INSTANCE_TYPE}" = "linux" ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi
  done
  CHECK=KO
@@ -52,14 +57,17 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the compartment OCID (see the list below):"
+  echo "Gathering compartment list..."
   oci iam compartment list --output=table --query "data [?contains(\"lifecycle-state\",'ACTIVE')].{Name:\"name\",OCID:id,Description:description}" --compartment-id-in-subtree true --all
+  echo -n "Please provide the instance compartment OCID: "
   read CUSTOM_COMPARTMENT_OCID
   echo "Validating compartment OCID..."
   oci iam compartment list --output=table --query "data [?contains(\"lifecycle-state\",'ACTIVE')].{OCID:id}" --compartment-id-in-subtree true --all | grep \ $CUSTOM_COMPARTMENT_OCID\  > /dev/null 2>&1
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi
  done
  CHECK=KO
@@ -67,10 +75,10 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the image compartment OCID (see the list below):"
+  echo "Gathering compartment list..."  
   oci iam compartment list --output=table --query "data [?contains(\"lifecycle-state\",'ACTIVE')].{Name:\"name\",OCID:id,Description:description}" --compartment-id-in-subtree true --all
   oci iam availability-domain list --output table --query "data [?contains(\"name\",'AD-1')].{\"(root) OCID\":\"compartment-id\"}" 
-  echo "Please use root compartment for Oracle Provided images:"
+  echo -n "Please provide the image compartment OCID (use root compartment for Oracle Provided images): "  
   read CUSTOM_IMAGE_COMPARTMENT_OCID
     
   echo "Validating compartment OCID..."
@@ -78,11 +86,15 @@ then
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi
   oci iam availability-domain list --output table --query "data [?contains(\"name\",'AD-1')].{\"(root) OCID\":\"compartment-id\"}" | grep \ $CUSTOM_IMAGE_COMPARTMENT_OCID\  > /dev/null 2>&1
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi
  done
  CHECK=KO
@@ -90,8 +102,9 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the image OCID (see the list below):"
+  echo "Gathering image list..."  
   oci compute image list --compartment-id $CUSTOM_IMAGE_COMPARTMENT_OCID --all --output table --query "data [?contains(\"operating-system\",'CentOS') == \`false\`] | [?contains(\"display-name\",'GPU') == \`false\`] | [?contains(\"operating-system\",'Ubuntu') == \`false\`] | [?contains(\"operating-system\",'Windows') == \`false\`].{name:\"display-name\",version:\"operating-system-version\",size:\"size-in-mbs\",OCID:id,OS:\"operating-system\"}"
+  echo -n "Please provide the image OCID: "
   read CUSTOM_IMAGE_OCID
     
   echo "Validating image OCID..."
@@ -99,6 +112,8 @@ then
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi  
  done
  CHECK=KO 
@@ -109,9 +124,10 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the instance shape (see the list below):"
+  echo "Gathering instance shape list..."
   CUSTOM_ROOT_COMPARTMENT_OCID=`oci iam availability-domain list --output table --query "data [?contains(\"name\",'AD-1')].{\"(root) OCID\":\"compartment-id\"}" | grep ".tenancy." | awk ' { print $2 } '`
   oci compute shape list --compartment-id $CUSTOM_ROOT_COMPARTMENT_OCID --all --output table --availability-domain $CUSTOM_AD_NAME
+  echo -n "Please provide the instance shape: "
   read CUSTOM_SHAPE
     
   echo "Validating shape..."
@@ -119,6 +135,8 @@ then
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi  
  done
  CHECK=KO
@@ -126,8 +144,9 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the VCN compartment OCID (see the list below):"
+  echo "Gathering compartment list..."    
   oci iam compartment list --output=table --query "data [?contains(\"lifecycle-state\",'ACTIVE')].{Name:\"name\",OCID:id,Description:description}" --compartment-id-in-subtree true --all  
+  echo -n "Please provide the VCN compartment OCID: "
   read CUSTOM_VCN_COMPARTMENT_OCID
     
   echo "Validating compartment OCID..."
@@ -135,6 +154,8 @@ then
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi  
  done
  CHECK=KO
@@ -142,8 +163,9 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the VCN OCID (see the list below):"
+  echo "Gathering VCN list..."  
   oci network vcn list --compartment-id $CUSTOM_VCN_COMPARTMENT_OCID --query "data [?contains(\"lifecycle-state\",'AVAILABLE')].{Name:\"display-name\",OCID:id,CIDR:\"cidr-block\"}" --all  --output=table
+  echo -n "Please provide the VCN OCID: "
   read CUSTOM_VCN_OCID
     
   echo "Validating VCN OCID..."
@@ -151,6 +173,8 @@ then
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi  
  done
  CHECK=KO
@@ -158,8 +182,9 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the subnet OCID (see the list below):"
+  echo "Gathering subnet list..." 
   oci network subnet list --compartment-id $CUSTOM_VCN_COMPARTMENT_OCID --vcn-id $CUSTOM_VCN_OCID  --query "data [?contains(\"lifecycle-state\",'AVAILABLE')].{Name:\"display-name\",OCID:id,CIDR:\"cidr-block\",AD:\"availability-domain\",Private:\"prohibit-public-ip-on-vnic\"}" --all  --output=table
+  echo -n "Please provide the subnet OCID: "
   read CUSTOM_SUBNET_OCID
     
   echo "Validating subnet OCID..."
@@ -167,6 +192,8 @@ then
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi  
  done
  CHECK=KO 
@@ -182,6 +209,8 @@ then
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi  
  done
  CHECK=KO 
@@ -197,6 +226,8 @@ then
   if [ $? -eq 0 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi  
  done
  CHECK=KO 
@@ -214,6 +245,8 @@ then
   if [ $CUSTOM_NEW_BLOCK_VOLUMES -ge 0 -a $CUSTOM_NEW_BLOCK_VOLUMES -le 9 ]
   then
    CHECK=OK
+  else
+   echo "Bad input..."
   fi  
  done
  CHECK=KO
@@ -238,6 +271,8 @@ then
    if [ $VOLUME_SIZEGB -ge 50 -a $VOLUME_SIZEGB -le 30000 ]
    then
     CHECK=OK
+   else
+    echo "Bad input..."
    fi  
   done
   CHECK=KO
@@ -275,6 +310,12 @@ else
 
  echo "Batch Mode"
  CUSTOM_CONFIG_FILE=$2
+ 
+ if [ ! -f "$CUSTOM_CONFIG_FILE" ]
+ then
+  echo "Custom file not found!"
+  exit 1
+ fi
 
 fi
 
@@ -328,6 +369,8 @@ then
  
  if [ "$CUSTOM_NEW_BLOCK_VOLUME_STRING" != "" ]
  then
+  TMP_ANSIBLE_OUT=tmp/create_volume.yml.$$.iscsicmd.tmp
+  > $TMP_ANSIBLE_OUT
   for CUSTOM_VOLUME_LINE in `echo $CUSTOM_NEW_BLOCK_VOLUME_STRING | sed s/\,/\ /g`
   do
    CUSTOM_VOLUME_NAME=`echo $CUSTOM_VOLUME_LINE | awk -F \: ' { print $1 } '`
@@ -345,7 +388,24 @@ then
    ANSIBLE_RC=$?
    echo "Ansible Playbook return code = ${ANSIBLE_RC}"
    
+   echo "Ansible Playbook return variables:"
+   CUSTOM_VOLUME_ID=`cat $TMP_ANSIBLE_LOG | grep \@\@\@CUSTOM_VOLUME_ID | awk -F \=\  ' { print $2 } ' | awk -F \" ' { print $1 } '`
+   CUSTOM_VOLUME_ATTACHMENT=`cat $TMP_ANSIBLE_LOG | grep \@\@\@CUSTOM_VOLUME_ATTACHMENT | awk -F \=\  ' { print $2 } ' | awk -F \" ' { print $1 } '`
+   
+   echo ${CUSTOM_VOLUME_ATTACHMENT} | awk -F \' ' { print $2 "\n" $4 "\n" $6 } ' >> $TMP_ANSIBLE_OUT
+   
   done
+    
+ fi
+ 
+ if [ "$CUSTOM_NEW_BLOCK_VOLUME_STRING" != "" ]
+ then
+ 
+  echo 
+  echo "Ansible Script Completed."
+  echo "Please connect to instance ${CUSTOM_INSTANCE_NAME} (private IP = ${CUSTOM_INSTANCE_PRIVATE_IP}) and execute the following commands as root user to attach block volumes:"
+  cat $TMP_ANSIBLE_OUT
+ 
  fi
   
 else
