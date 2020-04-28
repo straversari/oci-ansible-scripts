@@ -321,8 +321,44 @@ then
   CUSTOM_CLONE_VOLUME_NAME=${CUSTOM_INSTANCE_NAME}_disk000$VOLUMESEQ
   VOLUMELETTER=( {b..z} )
   CUSTOM_CLONE_DEVICE_NAME="/dev/oracleoci/oraclevd${VOLUMELETTER[VOLUMESEQ+1]}"
-  echo -n "Please provide the block volume backup OCID: "
-  read CUSTOM_SOURCE_BACKUP_VOLUME_OCID
+    
+  CHECK=KO
+  while [ "$CHECK" != "OK" ]
+  do
+   echo "Gathering compartment list..."    
+   oci iam compartment list --output=table --query "data [?contains(\"lifecycle-state\",'ACTIVE')].{Name:\"name\",OCID:id,Description:description}" --compartment-id-in-subtree true --all  
+   echo -n "Please provide the block volume backup compartment OCID: "
+   read CUSTOM_BV_COMPARTMENT_OCID
+     
+   echo "Validating compartment OCID..."
+   oci iam compartment list --output=table --query "data [?contains(\"lifecycle-state\",'ACTIVE')].{OCID:id}" --compartment-id-in-subtree true --all | grep \ $CUSTOM_BV_COMPARTMENT_OCID\  > /dev/null 2>&1
+   if [ $? -eq 0 ]
+   then
+    CHECK=OK
+   else
+    echo "Bad input..."
+   fi  
+  done
+  CHECK=KO   
+  
+  CHECK=KO
+  while [ "$CHECK" != "OK" ]
+  do
+   echo "Gathering block volume backup list..." 
+   oci bv backup list --compartment-id $CUSTOM_BV_COMPARTMENT_OCID --query "data [?contains(\"lifecycle-state\",'AVAILABLE')].{Name:\"display-name\",OCID:id,GB:\"size-in-gbs\"}" --all  --output=table
+   echo -n "Please provide the block volume backup OCID: "
+   read CUSTOM_SOURCE_BACKUP_VOLUME_OCID
+     
+   echo "Validating block volume backup OCID..."
+   oci bv backup list --compartment-id $CUSTOM_BV_COMPARTMENT_OCID --query "data [?contains(\"lifecycle-state\",'AVAILABLE')].{Name:\"display-name\",OCID:id,GB:\"size-in-gbs\"}" --all  --output=table | grep \ $CUSTOM_SOURCE_BACKUP_VOLUME_OCID\  > /dev/null 2>&1
+   if [ $? -eq 0 ]
+   then
+    CHECK=OK
+   else
+    echo "Bad input..."
+   fi  
+  done
+  CHECK=KO   
   
   if [ "${CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP}" = "" ]
   then
@@ -415,7 +451,7 @@ then
  export CUSTOM_INSTANCE_PRIVATE_IP
  
  
- TMP_ANSIBLE_OUT=tmp/create_volume.yml.$$.iscsicmd.tmp
+ TMP_ANSIBLE_OUT=tmp/create_block_volumes.yml.$$.iscsicmd.tmp
  > $TMP_ANSIBLE_OUT
  
  if [ "$CUSTOM_NEW_BLOCK_VOLUME_STRING" != "" ]
@@ -462,9 +498,9 @@ then
    
    echo "Starting ansible to clone block volume from backup..."
    sleep 5
-   TMP_ANSIBLE_LOG=tmp/create_volume_backup.yml.$$.${CUSTOM_CLONE_VOLUME_NAME}.tmp
+   TMP_ANSIBLE_LOG=tmp/clone_volume_backup.yml.$$.${CUSTOM_CLONE_VOLUME_NAME}.tmp
    > $TMP_ANSIBLE_LOG
-   ansible-playbook yml/create_volume_backup.yml  2>&1 | tee -a $TMP_ANSIBLE_LOG
+   ansible-playbook yml/clone_volume_backup.yml  2>&1 | tee -a $TMP_ANSIBLE_LOG
    ANSIBLE_RC=$?
    echo "Ansible Playbook return code = ${ANSIBLE_RC}"
    
