@@ -319,8 +319,8 @@ then
   echo "New Block Volume #"$i" from backup"
   VOLUMESEQ=`expr $MAXI + $i`
   CUSTOM_CLONE_VOLUME_NAME=${CUSTOM_INSTANCE_NAME}_disk000$VOLUMESEQ
-  VOLUMELETTER=( {b..z} )
-  CUSTOM_CLONE_DEVICE_NAME="/dev/oracleoci/oraclevd${VOLUMELETTER[VOLUMESEQ+1]}"
+  VOLUMELETTER=( {a..z} )
+  CUSTOM_CLONE_DEVICE_NAME="/dev/oracleoci/oraclevd${VOLUMELETTER[VOLUMESEQ]}"
     
   CHECK=KO
   while [ "$CHECK" != "OK" ]
