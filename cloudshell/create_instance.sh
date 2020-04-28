@@ -309,8 +309,8 @@ base64 -i -w 0 \$CUSTOM_USER_DATA_FILE > \$CUSTOM_USER_DATA
 else
 
  echo "Batch Mode"
- CUSTOM_CONFIG_FILE=$2
- 
+ CUSTOM_CONFIG_FILE=`realpath $2`
+  
  if [ ! -f "$CUSTOM_CONFIG_FILE" ]
  then
   echo "Custom file not found!"
