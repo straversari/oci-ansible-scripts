@@ -2,6 +2,11 @@
 
 BATCH=$1
 
+if [ "$BATCH" = "Y" ]
+then
+ CUSTOM_CONFIG_FILE=`realpath $2`
+fi
+
 CUSTOMSHNAME=`basename $0`
 PATHSH=`echo $0 | sed s/.${CUSTOMSHNAME}//`
 if [ "${PATHSH}" != "${CUSTOMSHNAME}" ]
@@ -309,8 +314,6 @@ base64 -i -w 0 \$CUSTOM_USER_DATA_FILE > \$CUSTOM_USER_DATA
 else
 
  echo "Batch Mode"
- CUSTOM_CONFIG_FILE=$(echo `realpath $2`) 
-
  
  if [ ! -f "$CUSTOM_CONFIG_FILE" ]
  then
