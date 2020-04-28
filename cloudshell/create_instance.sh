@@ -2,6 +2,14 @@
 
 BATCH=$1
 
+CUSTOMSHNAME=`basename $0`
+PATHSH=`echo $0 | sed s/.${CUSTOMSHNAME}//`
+if [ "${PATHSH}" != "${CUSTOMSHNAME}" ]
+then
+ cd ${PATHSH}
+fi
+SHELLPATH=`pwd`
+
 if [ "$BATCH" != "Y" ]
 then
 
@@ -277,6 +285,8 @@ then
  echo "Do you want to proceed with instance creation? [y]"
  read CUSTOM_RESPONSE
 fi
+
+mkdir tmp
 
 if [ "$CUSTOM_RESPONSE" = "" -o "$CUSTOM_RESPONSE" = "y" -o "$BATCH" = "Y" ]
 then
