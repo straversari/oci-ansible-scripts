@@ -91,14 +91,14 @@ then
   if [ $? -eq 0 ]
   then
    CHECK=OK
-  else
-   echo "Bad input..."
   fi
   oci iam availability-domain list --output table --query "data [?contains(\"name\",'AD-1')].{\"(root) OCID\":\"compartment-id\"}" | grep \ $CUSTOM_IMAGE_COMPARTMENT_OCID\  > /dev/null 2>&1
   if [ $? -eq 0 ]
   then
    CHECK=OK
-  else
+  fi
+  if [ $CHECK = KO ]
+  then
    echo "Bad input..."
   fi
  done
@@ -414,10 +414,13 @@ then
  export CUSTOM_INSTANCE_PUBLIC_IP
  export CUSTOM_INSTANCE_PRIVATE_IP
  
+ 
+ TMP_ANSIBLE_OUT=tmp/create_volume.yml.$$.iscsicmd.tmp
+ > $TMP_ANSIBLE_OUT
+ 
  if [ "$CUSTOM_NEW_BLOCK_VOLUME_STRING" != "" ]
  then
-  TMP_ANSIBLE_OUT=tmp/create_volume.yml.$$.iscsicmd.tmp
-  > $TMP_ANSIBLE_OUT
+  
   for CUSTOM_VOLUME_LINE in `echo $CUSTOM_NEW_BLOCK_VOLUME_STRING | sed s/\,/\ /g`
   do
    CUSTOM_VOLUME_NAME=`echo $CUSTOM_VOLUME_LINE | awk -F \: ' { print $1 } '`
@@ -443,15 +446,64 @@ then
    
   done
     
- fi
+ fi 
  
- if [ "$CUSTOM_NEW_BLOCK_VOLUME_STRING" != "" ]
+ if [ "$CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP" != "" ]
+ then
+
+  for CUSTOM_VOLUME_LINE in `echo $CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP | sed s/\,/\ /g`
+  do
+   CUSTOM_CLONE_VOLUME_NAME=`echo $CUSTOM_VOLUME_LINE | awk -F \: ' { print $1 } '`
+   CUSTOM_CLONE_DEVICE_NAME=`echo $CUSTOM_VOLUME_LINE | awk -F \: ' { print $2 } '`
+   CUSTOM_SOURCE_BACKUP_VOLUME_OCID=`echo $CUSTOM_VOLUME_LINE | awk -F \: ' { print $3 } '`
+   export CUSTOM_CLONE_VOLUME_NAME
+   export CUSTOM_CLONE_DEVICE_NAME
+   export CUSTOM_SOURCE_BACKUP_VOLUME_OCID
+   
+   echo "Starting ansible to clone block volume from backup..."
+   sleep 5
+   TMP_ANSIBLE_LOG=tmp/create_volume_backup.yml.$$.${CUSTOM_CLONE_VOLUME_NAME}.tmp
+   > $TMP_ANSIBLE_LOG
+   ansible-playbook yml/create_volume_backup.yml  2>&1 | tee -a $TMP_ANSIBLE_LOG
+   ANSIBLE_RC=$?
+   echo "Ansible Playbook return code = ${ANSIBLE_RC}"
+   
+   echo "Ansible Playbook return variables:"
+   CUSTOM_VOLUME_ID=`cat $TMP_ANSIBLE_LOG | grep \@\@\@CUSTOM_VOLUME_ID | awk -F \=\  ' { print $2 } ' | awk -F \" ' { print $1 } '`
+   CUSTOM_VOLUME_ATTACHMENT=`cat $TMP_ANSIBLE_LOG | grep \@\@\@CUSTOM_VOLUME_ATTACHMENT | awk -F \=\  ' { print $2 } ' | awk -F \" ' { print $1 } '`
+   
+   echo ${CUSTOM_VOLUME_ATTACHMENT} | awk -F \' ' { print $2 "\n" $4 "\n" $6 } ' >> $TMP_ANSIBLE_OUT
+   
+  done
+    
+ fi 
+ 
+ if [ "$CUSTOM_NEW_BLOCK_VOLUME_STRING" != "" -o "$CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP" != "" ]
  then
  
   echo 
   echo "Ansible Script Completed."
-  echo "Please connect to instance ${CUSTOM_INSTANCE_NAME} (private IP = ${CUSTOM_INSTANCE_PRIVATE_IP}) and execute the following commands as root user to attach block volumes:"
+  
+  if [ "${CUSTOM_INSTANCE_PUBLIC_IP}" = "" ]
+  then
+   echo "Please connect to instance ${CUSTOM_INSTANCE_NAME} (private IP = ${CUSTOM_INSTANCE_PRIVATE_IP}) and execute the following commands as root user to attach block volumes:"
+  else
+   echo "Please connect to instance ${CUSTOM_INSTANCE_NAME} (private IP = ${CUSTOM_INSTANCE_PRIVATE_IP}, public IP = ${CUSTOM_INSTANCE_PUBLIC_IP}) and execute the following commands as root user to attach block volumes:"
+  fi   
+  
   cat $TMP_ANSIBLE_OUT
+ 
+ else
+ 
+  echo 
+  echo "Ansible Script Completed."
+  
+  if [ "${CUSTOM_INSTANCE_PUBLIC_IP}" = "" ]
+  then
+   echo "Please connect to instance ${CUSTOM_INSTANCE_NAME} (private IP = ${CUSTOM_INSTANCE_PRIVATE_IP})."
+  else
+   echo "Please connect to instance ${CUSTOM_INSTANCE_NAME} (private IP = ${CUSTOM_INSTANCE_PRIVATE_IP}, public IP = ${CUSTOM_INSTANCE_PUBLIC_IP})."
+  fi 
  
  fi
   
