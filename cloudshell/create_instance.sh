@@ -240,7 +240,7 @@ then
  CHECK=KO
  while [ "$CHECK" != "OK" ]
  do
-  echo "Please provide the number of block volume to be created [0]:"
+  echo -n "Please provide the number of block volume to be created [0]: "
   read CUSTOM_NEW_BLOCK_VOLUMES
   if [ "${CUSTOM_NEW_BLOCK_VOLUMES}" = "" ]
   then
@@ -257,13 +257,15 @@ then
  CHECK=KO
  
  CUSTOM_NEW_BLOCK_VOLUME_STRING=""
+ MAXI=0
  for i in `seq $CUSTOM_NEW_BLOCK_VOLUMES`
  do
   echo
   echo "New Block Volume #"$i
   CUSTOM_VOLUME_NAME=${CUSTOM_INSTANCE_NAME}_disk000$i
   CUSTOM_DEVICE_NAME="/dev/oracleoci/oraclevd`echo $i | tr '[1-9]' '[b-j]'`"
-  echo "Please provide volume size in GB[50]:"
+  MAXI=$i
+  echo -n "Please provide volume size in GB[50]: "
   CHECK=KO
   while [ "$CHECK" != "OK" ]
   do
@@ -287,6 +289,44 @@ then
    CUSTOM_NEW_BLOCK_VOLUME_STRING=${CUSTOM_VOLUME_NAME}:${CUSTOM_DEVICE_NAME}:${VOLUME_SIZEGB}
   else
    CUSTOM_NEW_BLOCK_VOLUME_STRING=${CUSTOM_NEW_BLOCK_VOLUME_STRING},${CUSTOM_VOLUME_NAME}:${CUSTOM_DEVICE_NAME}:${VOLUME_SIZEGB}
+  fi  
+  
+ CHECK=KO
+ while [ "$CHECK" != "OK" ]
+ do
+  echo -n "Please provide the number of block volume to be cloned from existing backup [0]: "
+  read CUSTOM_NEW_BLOCK_VOLUMES_FROM_BACKUP
+  if [ "${CUSTOM_NEW_BLOCK_VOLUMES_FROM_BACKUP}" = "" ]
+  then
+   CUSTOM_NEW_BLOCK_VOLUMES_FROM_BACKUP=0
+  fi
+  
+  if [ $CUSTOM_NEW_BLOCK_VOLUMES_FROM_BACKUP -ge 0 -a $CUSTOM_NEW_BLOCK_VOLUMES_FROM_BACKUP -le 9 ]
+  then
+   CHECK=OK
+  else
+   echo "Bad input..."
+  fi  
+ done
+ CHECK=KO
+ 
+ CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP=""
+ for i in `seq $CUSTOM_NEW_BLOCK_VOLUMES_FROM_BACKUP`
+ do
+  echo
+  echo "New Block Volume #"$i" from backup"
+  VOLUMESEQ=`expr $MAXI + $i`
+  CUSTOM_CLONE_VOLUME_NAME=${CUSTOM_INSTANCE_NAME}_disk000$VOLUMESEQ
+  VOLUMELETTER=( {b..z} )
+  CUSTOM_CLONE_DEVICE_NAME="/dev/oracleoci/oraclevd${VOLUMELETTER[VOLUMESEQ+1]}"
+  echo -n "Please provide the block volume backup OCID: "
+  read CUSTOM_SOURCE_BACKUP_VOLUME_OCID
+  
+  if [ "${CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP}" = "" ]
+  then
+   CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP=${CUSTOM_CLONE_VOLUME_NAME}:${CUSTOM_CLONE_DEVICE_NAME}:${CUSTOM_SOURCE_BACKUP_VOLUME_OCID}
+  else
+   CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP=${CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP},${CUSTOM_CLONE_VOLUME_NAME}:${CUSTOM_CLONE_DEVICE_NAME}:${CUSTOM_SOURCE_BACKUP_VOLUME_OCID}
   fi
    
  done 
@@ -305,6 +345,7 @@ then
  echo "export CUSTOM_SSH_PUB_KEY_FILE=${CUSTOM_CURRENT_PATH}/.ssh/${CUSTOM_SSH_PUB_KEY_FILE}" >> $CUSTOM_CONFIG_FILE
  echo "export CUSTOM_USER_DATA_FILE=${CUSTOM_CURRENT_PATH}/sh/${CUSTOM_USER_DATA_FILE}" >> $CUSTOM_CONFIG_FILE
  echo "export CUSTOM_NEW_BLOCK_VOLUME_STRING=${CUSTOM_NEW_BLOCK_VOLUME_STRING}" >> $CUSTOM_CONFIG_FILE
+ echo "export CUSTOM_NEW_BLOCK_VOLUME_STRING_FROM_BACKUP=${CUSTOM_NEW_BLOCK_VOLUME_STRING}" >> $CUSTOM_CONFIG_FILE
   
  echo "### BEGIN DO NOT EDIT
 export CUSTOM_USER_DATA=${CUSTOM_CURRENT_PATH}/sh/\`basename \$CUSTOM_USER_DATA_FILE\`.base64
